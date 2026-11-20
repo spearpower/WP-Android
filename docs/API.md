@@ -18,6 +18,16 @@ and rotate on every refresh (the old pair stops working). Tokens are stored on t
 | | | `action=logout`: `refresh_token` → this device signed out, its push token removed |
 | `me.php` | GET | the person (below) |
 | `devices.php` | POST | `action=register`: `push_token` (FCM) · `action=unregister` |
+| `home.php` | GET | Home dashboard: `learning` (continue, stats), `sessions` (next 3), `points` |
+| `study.php` | GET/POST | Self Study: `bootstrap`, `catalogue`, `course`, `progress`, `start_attempt`, `submit_attempt` |
+| `live.php` | GET | Live Sessions for 5 weeks (one row per session) |
+| `library.php` | GET/POST | `home`, `book`, `progress` (page, pages, seen[]), `bookmark_add`, `bookmark_delete` |
+| `files.php` | GET | `kind=book|cover&b=n`, `kind=certificate&code=` (PDF/JPEG with the token) |
+| `join.php` | POST (no sign-in) | self sign-up: `check_username`, `submit` |
+| `welcome.php` | GET/POST | first sign-in setup: `password`, `privacy`, `setup` |
+| `lead.php` | GET/POST | `learners`, `members`, `gatherings`, `roster`, `mark`, `qr`, `checkin` |
+| `web_code.php` | POST | one-time link that opens a website section signed in (`to`) → `web_login.php` |
+| `account.php` | POST | `action=delete_request` (to the System Admins; nothing deleted automatically) |
 
 `me`: `user_id`, `username`, `name`, `first_name`, `role`, `role_label`, `center {id, name, country}`, `photo_url`,
 `language`, `setup_step` (`''` or `password` / `privacy` / `setup` for unfinished self sign-ups), `features`
@@ -28,4 +38,8 @@ Error codes: `unauthorized`, `token_expired` (401: renew with the refresh token)
 again), `invalid_credentials` (401, with `attempts_left`), `too_many_attempts` (429: 5 wrong in 10 minutes per
 username and IP), `account_blocked` (403), `maintenance` (503), `missing_fields` / `device_required` (422).
 
-Tables (created on first use, `dh_schema_done('app_api', 1)`): `app_tokens`, `app_devices`, `app_attempts`.
+Tables (created on first use): `app_tokens`, `app_devices`, `app_attempts` (`dh_schema_done('app_api', 1)`),
+`app_web_codes`, `app_push_sent`, `account_deletion_requests`.
+
+Web files outside api/v1 the app depends on: `cfg/app_push.php` (+ hooks in `cfg/notify.php`,
+`php/liveclasses/lc_helpers.php`), `cfg/account_deletion.php`, `privacy.php`, `delete-account.php`.
