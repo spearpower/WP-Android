@@ -1,6 +1,19 @@
 package com.workspace.disciplehub.ui.learn
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -111,6 +124,10 @@ fun LessonScreen(vm: LearnViewModel, courseId: Int, lessonId: Int) {
     var completed by remember(lessonId) { mutableStateOf(lesson?.progress?.completed == true) }
     var percent by remember(lessonId) { mutableStateOf(lesson?.progress?.percent ?: 0.0) }
     var ended by remember(lessonId) { mutableStateOf(false) }
+    // Full screen: the player hands over its view; it is shown in a landscape dialog over everything.
+    var fullView by remember { mutableStateOf<View?>(null) }
+    var exitFull by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val activity = context.findActivity()
 
     fun sync() {
         if (!tracker.hasNews()) return
@@ -136,6 +153,32 @@ fun LessonScreen(vm: LearnViewModel, courseId: Int, lessonId: Int) {
         }
     }
     DisposableEffect(lessonId) { onDispose { sync() } }
+    DisposableEffect(Unit) { onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED } }
+
+    fullView?.let { view ->
+        Dialog(
+            onDismissRequest = { exitFull?.invoke() },
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) {
+            BackHandler { exitFull?.invoke() }
+            val window = (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+            DisposableEffect(window) {
+                window?.let {
+                    WindowCompat.setDecorFitsSystemWindows(it, false)
+                    WindowInsetsControllerCompat(it, it.decorView).apply {
+                        hide(WindowInsetsCompat.Type.systemBars())
+                        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    }
+                }
+                onDispose { }
+            }
+            AndroidView(
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+                factory = { (view.parent as? ViewGroup)?.removeView(view); view },
+                onRelease = { (it.parent as? ViewGroup)?.removeView(it) },
+            )
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         TopBar(lesson?.title ?: "Lesson") { vm.back() }
@@ -148,8 +191,21 @@ fun LessonScreen(vm: LearnViewModel, courseId: Int, lessonId: Int) {
                     factory = { ctx ->
                         YouTubePlayerView(ctx).apply {
                             enableAutomaticInitialization = false
+                            addFullscreenListener(object : FullscreenListener {
+                                override fun onEnterFullscreen(fullscreenView: View, exitFullscreen: () -> Unit) {
+                                    fullView = fullscreenView
+                                    exitFull = exitFullscreen
+                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                }
+
+                                override fun onExitFullscreen() {
+                                    fullView = null
+                                    exitFull = null
+                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                }
+                            })
                             lifecycleOwner.lifecycle.addObserver(this)
-                            val options = IFramePlayerOptions.Builder(ctx).controls(1).rel(0).ivLoadPolicy(3).ccLoadPolicy(1).fullscreen(0).build()
+                            val options = IFramePlayerOptions.Builder(ctx).controls(1).rel(0).ivLoadPolicy(3).ccLoadPolicy(1).fullscreen(1).build()
                             initialize(object : AbstractYouTubePlayerListener() {
                                 override fun onReady(youTubePlayer: YouTubePlayer) {
                                     youTubePlayer.cueVideo(videoId, start)
@@ -221,3 +277,12 @@ fun LessonScreen(vm: LearnViewModel, courseId: Int, lessonId: Int) {
     }
 }
 
+
+private fun Context.findActivity(): Activity? {
+    var c: Context? = this
+    while (c is ContextWrapper) {
+        if (c is Activity) return c
+        c = c.baseContext
+    }
+    return null
+}

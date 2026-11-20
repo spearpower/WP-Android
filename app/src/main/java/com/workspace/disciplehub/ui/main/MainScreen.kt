@@ -33,6 +33,7 @@ import com.workspace.disciplehub.ui.common.EmptyState
 import com.workspace.disciplehub.ui.home.HomeScreen
 import com.workspace.disciplehub.ui.learn.LearnScreen
 import com.workspace.disciplehub.ui.learn.LearnTarget
+import com.workspace.disciplehub.ui.live.LiveScreen
 import com.workspace.disciplehub.ui.me.MeScreen
 
 enum class Tab(val label: String, val icon: ImageVector, val iconOn: ImageVector, val feature: String?) {
@@ -80,7 +81,7 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
                 modifier = m,
             )
             Tab.Learn -> LearnScreen(me, learnTarget, onTargetUsed = { learnTarget = null }, modifier = m)
-            Tab.Live -> EmptyState(Tab.Live.iconOn, "Live Sessions", "Today's, tomorrow's and this week's sessions, with Join, come here in the next update.", m)
+            Tab.Live -> LiveScreen(modifier = m)
             Tab.Library -> EmptyState(Tab.Library.iconOn, "Library", "The books and reader come here in the next update.", m)
             Tab.Me -> MeScreen(me, onLogout, modifier = m)
         }

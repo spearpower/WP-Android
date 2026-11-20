@@ -5,6 +5,7 @@ import com.workspace.disciplehub.data.ApiClient
 import com.workspace.disciplehub.data.AuthRepository
 import com.workspace.disciplehub.data.DeviceInfo
 import com.workspace.disciplehub.data.HomeRepository
+import com.workspace.disciplehub.data.LiveRepository
 import com.workspace.disciplehub.data.StudyRepository
 import com.workspace.disciplehub.data.TokenStore
 
@@ -20,6 +21,8 @@ class WpApp : Application() {
         private set
     lateinit var study: StudyRepository
         private set
+    lateinit var live: LiveRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -29,5 +32,6 @@ class WpApp : Application() {
         auth = AuthRepository(api, tokens, device)
         home = HomeRepository(api, tokens)
         study = StudyRepository(api, tokens)
+        live = LiveRepository(api, tokens)
     }
 }
