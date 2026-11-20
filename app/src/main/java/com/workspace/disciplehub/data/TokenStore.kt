@@ -48,10 +48,19 @@ class TokenStore(private val context: Context) {
         context.store.edit { it[kMe] = AppJson.encodeToString(Me.serializer(), me) }
     }
 
+    /** Saved replies (JSON) so screens show at once and work offline. Cleared on sign-out. */
+    suspend fun cacheGet(key: String): String? = context.store.data.first()[stringPreferencesKey("cache_$key")]
+
+    suspend fun cachePut(key: String, json: String) {
+        context.store.edit { it[stringPreferencesKey("cache_$key")] = json }
+    }
+
+    /** Signs this phone out: everything goes except the device id. */
     suspend fun clear() {
-        context.store.edit {
-            it.remove(kTokens)
-            it.remove(kMe)
+        context.store.edit { prefs ->
+            val device = prefs[kDevice]
+            prefs.clear()
+            device?.let { prefs[kDevice] = it }
         }
         cached = null
         loaded = true
