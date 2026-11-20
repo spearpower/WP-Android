@@ -13,6 +13,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.coroutines.resume
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 /**
  * Push notifications (Firebase Cloud Messaging). Firebase is started from BuildConfig (local.properties fcm.*), so no
@@ -34,6 +36,10 @@ object Push {
     var started = false
         private set
 
+    /** What happened at the last registration, shown on Me (e.g. "On" or the error from Google). */
+    var status by androidx.compose.runtime.mutableStateOf("Not set up")
+        private set
+
     fun start(context: Context) {
         createChannels(context)
         if (!configured || started) return
@@ -50,7 +56,8 @@ object Push {
                 )
             }
             started = true
-        }
+            status = "Starting"
+        }.onFailure { status = "Firebase could not start: ${it.message}"; android.util.Log.w("DHPush", "init failed", it) }
     }
 
     private fun createChannels(context: Context) {
@@ -70,10 +77,20 @@ object Push {
                 put("action", "register")
                 put("push_token", t)
             })
-        }
+        }.onSuccess { status = "On" }.onFailure { status = "Registered with Google, but the server did not save it: ${it.message}" }
     }
 
     private suspend fun currentToken(): String? = suspendCancellableCoroutine { cont ->
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task -> cont.resume(if (task.isSuccessful) task.result else null) }
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                cont.resume(task.result)
+            } else {
+                val e = task.exception
+                val reason = generateSequence<Throwable>(e) { it.cause }.mapNotNull { it.message }.distinct().joinToString(" / ")
+                status = "Google refused: $reason"
+                android.util.Log.w("DHPush", "token failed: $reason", e)
+                cont.resume(null)
+            }
+        }
     }
 }

@@ -81,6 +81,8 @@ fun MeScreen(me: Me, onLogout: () -> Unit, modifier: Modifier = Modifier) {
                     InfoRow(Icons.Outlined.LocationOn, "Center", listOf(it.name, it.country).filter(String::isNotBlank).joinToString(", "))
                 }
                 HorizontalDivider()
+                InfoRow(Icons.Outlined.Notifications, "Push notifications", com.workspace.disciplehub.push.Push.status)
+                HorizontalDivider()
                 InfoRow(Icons.Outlined.Info, "App version", BuildConfig.VERSION_NAME + if (BuildConfig.FLAVOR == "dev") " · " + BuildConfig.API_BASE else "")
             }
         }
