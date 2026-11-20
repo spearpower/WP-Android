@@ -9,6 +9,7 @@ import com.workspace.disciplehub.data.ApiClient
 import com.workspace.disciplehub.data.AuthRepository
 import com.workspace.disciplehub.data.DeviceInfo
 import com.workspace.disciplehub.data.HomeRepository
+import com.workspace.disciplehub.data.JoinRepository
 import com.workspace.disciplehub.data.LibraryRepository
 import com.workspace.disciplehub.data.LiveRepository
 import com.workspace.disciplehub.data.StudyRepository
@@ -30,6 +31,8 @@ class WpApp : Application(), SingletonImageLoader.Factory {
         private set
     lateinit var library: LibraryRepository
         private set
+    lateinit var join: JoinRepository
+        private set
 
     /** Pictures (book covers, profile photos) load with the sign-in when they come from DH Workspace. */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
@@ -45,5 +48,6 @@ class WpApp : Application(), SingletonImageLoader.Factory {
         study = StudyRepository(api, tokens)
         live = LiveRepository(api, tokens)
         library = LibraryRepository(api, tokens, filesDir)
+        join = JoinRepository(api)
     }
 }

@@ -96,10 +96,10 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 @Composable
-fun LoginScreen(notice: String?, onSignedIn: (Me) -> Unit, vm: LoginViewModel = viewModel()) {
+fun LoginScreen(notice: String?, onSignedIn: (Me) -> Unit, onJoin: () -> Unit, prefill: String = "", vm: LoginViewModel = viewModel()) {
     val context = LocalContext.current
     val focus = LocalFocusManager.current
-    var username by rememberSaveable { mutableStateOf("") }
+    var username by rememberSaveable(prefill) { mutableStateOf(prefill) }
     var password by rememberSaveable { mutableStateOf("") }
     var showPassword by rememberSaveable { mutableStateOf(false) }
     val submit = {
@@ -207,7 +207,7 @@ fun LoginScreen(notice: String?, onSignedIn: (Me) -> Unit, vm: LoginViewModel = 
             Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("New to Disciple Hub?", color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
-                TextButton(onClick = { openUrl(context, vm.siteBase + "join.php") }) {
+                TextButton(onClick = onJoin) {
                     Text("Join", color = DhLime, fontWeight = FontWeight.Bold)
                 }
             }
