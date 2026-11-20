@@ -14,6 +14,11 @@ val localProps = Properties().apply {
 }
 val devApiBase: String = localProps.getProperty("dev.apiBase") ?: "http://10.0.2.2/wp/api/v1/"
 
+// Push notifications (Firebase Cloud Messaging). The values come from the Firebase console (Project settings > Your
+// apps) and live in local.properties only, never in git. Without them push is simply off.
+//   fcm.projectId=..., fcm.senderId=..., fcm.apiKey=..., fcm.appId.dev=1:...:android:..., fcm.appId.prod=1:...:android:...
+fun fcm(key: String): String = (localProps.getProperty("fcm.$key") ?: "").replace("\"", "")
+
 android {
     namespace = "com.workspace.disciplehub"
     compileSdk {
@@ -28,6 +33,9 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "FCM_PROJECT_ID", "\"${fcm("projectId")}\"")
+        buildConfigField("String", "FCM_SENDER_ID", "\"${fcm("senderId")}\"")
+        buildConfigField("String", "FCM_API_KEY", "\"${fcm("apiKey")}\"")
     }
 
     // dev = this computer's XAMPP (local MySQL); prod = workspace.disciplehub.org (live MySQL).
@@ -38,11 +46,13 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             buildConfigField("String", "API_BASE", "\"$devApiBase\"")
+            buildConfigField("String", "FCM_APP_ID", "\"${fcm("appId.dev")}\"")
             resValue("string", "app_name", "DH Workspace (dev)")
         }
         create("prod") {
             dimension = "env"
             buildConfigField("String", "API_BASE", "\"https://workspace.disciplehub.org/api/v1/\"")
+            buildConfigField("String", "FCM_APP_ID", "\"${fcm("appId.prod")}\"")
             resValue("string", "app_name", "DH Workspace")
         }
     }
@@ -86,6 +96,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.youtube.player)
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.okhttp.logging)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

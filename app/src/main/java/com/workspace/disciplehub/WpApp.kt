@@ -38,8 +38,15 @@ class WpApp : Application(), SingletonImageLoader.Factory {
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context).components { add(OkHttpNetworkFetcherFactory(callFactory = { api.authedHttp })) }.build()
 
+    /** Work that outlives a screen (push registration). */
+    val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
+
+    /** A screen a notification asked to open ("live", "learn", "library", "home"); MainScreen takes it. */
+    val pendingRoute = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     override fun onCreate() {
         super.onCreate()
+        com.workspace.disciplehub.push.Push.start(this)
         tokens = TokenStore(this)
         val device = DeviceInfo(this, tokens)
         api = ApiClient(BuildConfig.API_BASE, tokens, device)

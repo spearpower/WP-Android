@@ -21,12 +21,14 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.workspace.disciplehub.data.Me
 import com.workspace.disciplehub.ui.common.EmptyState
@@ -51,6 +53,32 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
     var current by rememberSaveable { mutableStateOf(Tab.Home) }
     if (current !in tabs) current = Tab.Home
     var learnTarget by remember { mutableStateOf<LearnTarget?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as com.workspace.disciplehub.WpApp
+
+    // A tapped notification: open its tab.
+    val route by app.pendingRoute.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(route) {
+        val r = route ?: return@LaunchedEffect
+        val tab = when (r) { "live" -> Tab.Live; "learn" -> Tab.Learn; "library" -> Tab.Library; "me" -> Tab.Me; else -> Tab.Home }
+        if (tab in tabs) current = tab
+        app.pendingRoute.value = null
+    }
+
+    // Push: ask once for permission (Android 13+), then tell the server this phone's token.
+    val askPermission = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
+        app.scope.launch { com.workspace.disciplehub.push.Push.register(app.api) }
+    }
+    androidx.compose.runtime.LaunchedEffect(me.userId) {
+        if (!com.workspace.disciplehub.push.Push.started) return@LaunchedEffect
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            com.workspace.disciplehub.push.Push.register(app.api)
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // each screen handles the status bar itself
