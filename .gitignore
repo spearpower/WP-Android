@@ -21,3 +21,6 @@ keystore.properties
 /app/release/
 /app/dev/
 /app/prod/
+
+# Android Studio settings (per computer)
+.idea/
