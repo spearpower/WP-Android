@@ -20,6 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 
+/** Keeps a right-to-left title (Arabic) from reordering the English sentence around it. */
+fun isolate(text: String): String = "⁨" + text + "⁩" // first-strong isolate ... pop directional isolate
+
 fun openUrl(context: Context, url: String) {
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))

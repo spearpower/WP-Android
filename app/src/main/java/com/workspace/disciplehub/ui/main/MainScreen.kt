@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,6 +31,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.workspace.disciplehub.data.Me
 import com.workspace.disciplehub.ui.common.EmptyState
 import com.workspace.disciplehub.ui.home.HomeScreen
+import com.workspace.disciplehub.ui.learn.LearnScreen
+import com.workspace.disciplehub.ui.learn.LearnTarget
 import com.workspace.disciplehub.ui.me.MeScreen
 
 enum class Tab(val label: String, val icon: ImageVector, val iconOn: ImageVector, val feature: String?) {
@@ -45,6 +48,7 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
     val tabs = Tab.entries.filter { it.feature == null || me.can(it.feature) }
     var current by rememberSaveable { mutableStateOf(Tab.Home) }
     if (current !in tabs) current = Tab.Home
+    var learnTarget by remember { mutableStateOf<LearnTarget?>(null) }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // each screen handles the status bar itself
@@ -64,8 +68,18 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
     ) { padding ->
         val m = Modifier.padding(padding)
         when (current) {
-            Tab.Home -> HomeScreen(me, offline, onRefresh, onOpen = { feature -> Tab.entries.firstOrNull { it.feature == feature && it in tabs }?.let { current = it } }, modifier = m)
-            Tab.Learn -> EmptyState(Tab.Learn.iconOn, "Self Study", "Your courses, lessons and quizzes come here in the next update.", m)
+            Tab.Home -> HomeScreen(
+                me, offline, onRefresh,
+                onOpen = { feature -> Tab.entries.firstOrNull { it.feature == feature && it in tabs }?.let { current = it } },
+                onContinue = { courseId, lessonId, lang ->
+                    if (Tab.Learn in tabs) {
+                        learnTarget = LearnTarget(courseId, lessonId, lang)
+                        current = Tab.Learn
+                    }
+                },
+                modifier = m,
+            )
+            Tab.Learn -> LearnScreen(me, learnTarget, onTargetUsed = { learnTarget = null }, modifier = m)
             Tab.Live -> EmptyState(Tab.Live.iconOn, "Live Sessions", "Today's, tomorrow's and this week's sessions, with Join, come here in the next update.", m)
             Tab.Library -> EmptyState(Tab.Library.iconOn, "Library", "The books and reader come here in the next update.", m)
             Tab.Me -> MeScreen(me, onLogout, modifier = m)

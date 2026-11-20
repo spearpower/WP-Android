@@ -62,6 +62,7 @@ import com.workspace.disciplehub.data.Learning
 import com.workspace.disciplehub.data.Me
 import com.workspace.disciplehub.data.Points
 import com.workspace.disciplehub.data.SessionItem
+import com.workspace.disciplehub.ui.common.isolate
 import com.workspace.disciplehub.ui.common.minutesUntil
 import com.workspace.disciplehub.ui.common.openUrl
 import com.workspace.disciplehub.ui.common.sessionWhen
@@ -105,6 +106,7 @@ fun HomeScreen(
     offline: Boolean,
     onRefresh: () -> Unit,
     onOpen: (String) -> Unit,
+    onContinue: (courseId: Int, lessonId: Int?, lang: String?) -> Unit,
     modifier: Modifier = Modifier,
     vm: HomeViewModel = viewModel(),
 ) {
@@ -132,7 +134,16 @@ fun HomeScreen(
             vm.error?.let { item { Banner(Icons.Outlined.CloudOff, it) } }
 
             home?.learning?.let { learning ->
-                item { ContinueCard(learning) { onOpen("self_study") } }
+                item {
+                    ContinueCard(learning) {
+                        val c = learning.continueLesson
+                        when {
+                            c != null && !c.courseDone -> onContinue(c.courseId, c.lessonId, c.lang)
+                            c == null && learning.firstCourse != null -> onContinue(learning.firstCourse.courseId, null, null)
+                            else -> onOpen("self_study")
+                        }
+                    }
+                }
                 item { StatsRow(learning) }
             }
             if (home == null && vm.loading) item { LoadingCard() }
@@ -223,7 +234,7 @@ private fun ContinueCard(l: Learning, onGo: () -> Unit) {
                 }
                 c != null -> {
                     Text("Well done!", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
-                    Text("You finished ${c.courseTitle}.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("You finished ${isolate(c.courseTitle)}.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text("Choose your next course in Self Study.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     PrimaryButton("Find a course", onGo)
                 }
