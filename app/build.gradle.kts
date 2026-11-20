@@ -19,6 +19,13 @@ val devApiBase: String = localProps.getProperty("dev.apiBase") ?: "http://10.0.2
 //   fcm.projectId=..., fcm.senderId=..., fcm.apiKey=..., fcm.appId.dev=1:...:android:..., fcm.appId.prod=1:...:android:...
 fun fcm(key: String): String = (localProps.getProperty("fcm.$key") ?: "").replace("\"", "")
 
+// Play Store upload key: keystore.properties next to settings.gradle.kts (never committed), with
+// storeFile=..., storePassword=..., keyAlias=..., keyPassword=...  Without it, release builds stay unsigned.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.workspace.disciplehub"
     compileSdk {
@@ -57,8 +64,20 @@ android {
         }
     }
 
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile") != null) {
+            create("upload") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             optimization {
                 enable = false
             }
