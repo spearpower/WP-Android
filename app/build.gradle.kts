@@ -117,7 +117,7 @@ dependencies {
     implementation(libs.youtube.player)
     implementation(libs.firebase.messaging)
     implementation(libs.code.scanner)
-    debugImplementation(libs.okhttp.logging)
+    implementation(libs.okhttp.logging) // logs only in debug builds (ApiClient)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
