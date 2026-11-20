@@ -47,12 +47,26 @@ enum class Tab(val label: String, val icon: ImageVector, val iconOn: ImageVector
     Me("Me", Icons.Outlined.Person, Icons.Filled.Person, null),
 }
 
+/** Home cards that open a website module inside the app: feature -> (title, dashboard section). */
+private val WEB_PAGES = mapOf(
+    "forum" to ("Forum" to "forum"),
+    "prayer_wall" to ("Prayer Wall" to "prayer_wall"),
+    "bible" to ("My Bible" to "bible"),
+    "rhema_ai" to ("Rhema AI" to "torah"),
+    "fun_quiz" to ("Fun Quiz" to "fun_quiz"),
+    "reading_plans" to ("Reading Plans" to "reading_plans"),
+    "rewards" to ("Rewards" to "rewards"),
+    "profile" to ("My Account" to "my_profile"),
+)
+
 @Composable
 fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> Unit) {
     val tabs = Tab.entries.filter { it.feature == null || me.can(it.feature) }
     var current by rememberSaveable { mutableStateOf(Tab.Home) }
     if (current !in tabs) current = Tab.Home
     var learnTarget by remember { mutableStateOf<LearnTarget?>(null) }
+    // A full-screen page over the tabs: leaders' screens or a website module.
+    var overlay by rememberSaveable { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val app = context.applicationContext as com.workspace.disciplehub.WpApp
 
@@ -80,6 +94,16 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
         }
     }
 
+    WEB_PAGES[overlay]?.let { (title, section) ->
+        com.workspace.disciplehub.ui.web.WebScreen(title, section) { overlay = null }
+        return
+    }
+    when (overlay) {
+        "learners_progress" -> { com.workspace.disciplehub.ui.lead.LearnersScreen({ overlay = null }); return }
+        "members" -> { com.workspace.disciplehub.ui.lead.MembersScreen({ overlay = null }); return }
+        "attendance" -> { com.workspace.disciplehub.ui.lead.AttendanceScreen({ overlay = null }); return }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // each screen handles the status bar itself
         bottomBar = {
@@ -100,7 +124,15 @@ fun MainScreen(me: Me, offline: Boolean, onRefresh: () -> Unit, onLogout: () -> 
         when (current) {
             Tab.Home -> HomeScreen(
                 me, offline, onRefresh,
-                onOpen = { feature -> Tab.entries.firstOrNull { it.feature == feature && it in tabs }?.let { current = it } },
+                onOpen = { feature ->
+                    when (feature) {
+                        "self_study" -> if (Tab.Learn in tabs) current = Tab.Learn
+                        "live_sessions", "live_sessions_host" -> if (Tab.Live in tabs) current = Tab.Live
+                        "library" -> if (Tab.Library in tabs) current = Tab.Library
+                        "checkin" -> com.workspace.disciplehub.ui.lead.scanAndCheckIn(context, app)
+                        else -> overlay = feature
+                    }
+                },
                 onContinue = { courseId, lessonId, lang ->
                     if (Tab.Learn in tabs) {
                         learnTarget = LearnTarget(courseId, lessonId, lang)

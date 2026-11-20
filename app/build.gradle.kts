@@ -97,6 +97,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.youtube.player)
     implementation(libs.firebase.messaging)
+    implementation(libs.code.scanner)
     debugImplementation(libs.okhttp.logging)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

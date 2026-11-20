@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Insights
@@ -85,12 +87,15 @@ private val EXPLORE = listOf(
     HomeCard("rhema_ai", "Rhema AI", "Ask about the Bible and faith", Icons.Outlined.AutoAwesome, Color(0xFF5E35B1)),
     HomeCard("forum", "Forum", "Discuss with other learners", Icons.Outlined.Forum, Color(0xFF3949AB)),
     HomeCard("prayer_wall", "Prayer wall", "Share and pray for requests", Icons.Outlined.VolunteerActivism, Color(0xFFC2412D)),
+    HomeCard("rewards", "Rewards", "Points, badges and the board", Icons.Outlined.EmojiEvents, Color(0xFFB7791F)),
+    HomeCard("checkin", "Check in", "Scan the QR code at a gathering", Icons.Outlined.QrCodeScanner, Color(0xFF00897B)),
 )
 
 private val LEADING = listOf(
     HomeCard("learners_progress", "Learners' progress", "Who is moving, who has stalled", Icons.Outlined.Insights, Color(0xFF22745D)),
     HomeCard("members", "My group", "Members of your center", Icons.Outlined.Groups, Color(0xFF1E88E5)),
-    HomeCard("live_sessions_host", "Sessions I host", "Schedule and attendance", Icons.Outlined.LiveTv, Color(0xFF6B46C1)),
+    HomeCard("attendance", "Attendance", "Tick who came or show a QR code", Icons.Outlined.EventAvailable, Color(0xFFD69E2E)),
+    HomeCard("live_sessions_host", "Sessions I host", "Your live sessions", Icons.Outlined.LiveTv, Color(0xFF6B46C1)),
 )
 
 private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
@@ -112,12 +117,9 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val home: Home? = vm.home
-    val explore = EXPLORE.filter { me.can(it.feature) }
+    val explore = EXPLORE.filter { it.feature == "checkin" || me.can(it.feature) }
     val leading = LEADING.filter { me.can(it.feature) }
-    val open: (HomeCard) -> Unit = { card ->
-        if (card.feature in listOf("self_study", "live_sessions", "library")) onOpen(card.feature)
-        else Toast.makeText(context, "${card.title} comes in a coming update.", Toast.LENGTH_SHORT).show()
-    }
+    val open: (HomeCard) -> Unit = { card -> onOpen(card.feature) }
 
     PullToRefreshBox(
         isRefreshing = vm.loading && home != null,
