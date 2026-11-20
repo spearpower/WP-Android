@@ -42,6 +42,9 @@ class TokenStore(private val context: Context) {
         loaded = true
     }
 
+    /** The access token already in memory (for image requests, which cannot wait); null before the first load. */
+    fun accessNow(): String? = cached?.accessToken
+
     suspend fun lastMe(): Me? = context.store.data.first()[kMe]?.let { runCatching { AppJson.decodeFromString(Me.serializer(), it) }.getOrNull() }
 
     suspend fun saveMe(me: Me) {

@@ -89,6 +89,7 @@ fun LearnScreen(me: Me, target: LearnTarget?, onTargetUsed: () -> Unit, modifier
             is LearnPage.CoursePage -> CourseView(vm, p.courseId)
             is LearnPage.LessonPage -> LessonScreen(vm, p.courseId, p.lessonId)
             is LearnPage.QuizPage -> QuizScreen(vm, p.courseId)
+            is LearnPage.CertificatePage -> CertificateScreen(vm, p.code)
         }
     }
 }
@@ -201,7 +202,7 @@ private fun CourseView(vm: LearnViewModel, courseId: Int) {
                 LessonRow(lesson, course.lessons.indexOf(lesson) + 1) { vm.openLesson(course.id, lesson.id) }
             }
         }
-        course.assessment?.let { a -> item { AssessmentCard(a, onStart = { vm.openQuiz(course.id) }, onCertificate = { a.certificateUrl?.let { openUrl(context, it) } }) } }
+        course.assessment?.let { a -> item { AssessmentCard(a, onStart = { vm.openQuiz(course.id) }, onCertificate = { a.certificate?.let { vm.openCertificate(it) } }) } }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
@@ -297,6 +298,30 @@ private fun AssessmentCard(a: AssessmentSummary, onStart: () -> Unit, onCertific
                     Text("Opens when you finish all lessons (${a.lessonsDone} of ${a.lessonsTotal} done).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CertificateScreen(vm: LearnViewModel, code: String) {
+    val context = LocalContext.current
+    Column(Modifier.fillMaxSize()) {
+        TopBar("Certificate") { vm.back() }
+        val f = vm.certFile
+        when {
+            f != null -> {
+                Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
+                    OutlinedButton(onClick = {
+                        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", f)
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("application/pdf")
+                            .putExtra(android.content.Intent.EXTRA_STREAM, uri).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        context.startActivity(android.content.Intent.createChooser(send, "Save or share your certificate"))
+                    }) { Text("Save or share") }
+                }
+                com.workspace.disciplehub.ui.pdf.PdfPages(f, 1)
+            }
+            vm.certError != null -> EmptyState(Icons.Outlined.WorkspacePremium, "The certificate could not open", vm.certError ?: "")
+            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator() }
         }
     }
 }

@@ -42,14 +42,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.workspace.disciplehub.data.Question
 import com.workspace.disciplehub.data.SubmitResult
 import com.workspace.disciplehub.ui.common.EmptyState
-import com.workspace.disciplehub.ui.common.openUrl
 import com.workspace.disciplehub.ui.theme.DhGreen
 import com.workspace.disciplehub.ui.theme.DhLime
 import com.workspace.disciplehub.ui.theme.DhOnLime
@@ -64,7 +62,7 @@ fun QuizScreen(vm: LearnViewModel, courseId: Int) {
     Column(Modifier.fillMaxSize()) {
         TopBar(attempt?.assessment?.title?.ifBlank { null } ?: "Assessment") { vm.back() }
         when {
-            result != null -> ResultView(result, onBack = { vm.back() })
+            result != null -> ResultView(result, onBack = { vm.back() }, onCertificate = { vm.openCertificate(it) })
             attempt != null -> Questions(vm, attempt.questions, attempt.assessment.passPercent, attempt.assessment.instructions)
             vm.quizBusy -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             else -> EmptyState(Icons.Outlined.Quiz, "The assessment could not start", vm.quizError ?: "Please try again.")
@@ -149,8 +147,7 @@ private fun optionText(q: Question, text: String): String {
 }
 
 @Composable
-private fun ResultView(r: SubmitResult, onBack: () -> Unit) {
-    val context = LocalContext.current
+private fun ResultView(r: SubmitResult, onBack: () -> Unit, onCertificate: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Surface(shape = RoundedCornerShape(22.dp), color = if (r.passed) DhGreen else MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
@@ -170,8 +167,8 @@ private fun ResultView(r: SubmitResult, onBack: () -> Unit) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                r.certificateUrl?.let { url ->
-                    Button(onClick = { openUrl(context, url) }, colors = ButtonDefaults.buttonColors(containerColor = DhLime, contentColor = DhOnLime)) { Text("View certificate") }
+                r.certificate?.let { code ->
+                    Button(onClick = { onCertificate(code) }, colors = ButtonDefaults.buttonColors(containerColor = DhLime, contentColor = DhOnLime)) { Text("View certificate") }
                 }
                 OutlinedButton(onClick = onBack) { Text("Back to the course") }
             }

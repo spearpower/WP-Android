@@ -13,6 +13,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -43,6 +44,58 @@ class ApiClient(private val base: String, private val tokens: TokenStore, privat
     val siteBase: String = base.removeSuffix("/").removeSuffix("/v1").removeSuffix("/api") + "/"
 
     var onSignedOut: (() -> Unit)? = null
+
+    /** For pictures and files from DH Workspace: adds the sign-in to requests for our own server only. */
+    val authedHttp: OkHttpClient by lazy {
+        val host = base.toHttpUrlOrNull()?.host
+        http.newBuilder().addInterceptor { chain ->
+            val req = chain.request()
+            val token = tokens.accessNow()
+            chain.proceed(if (token != null && req.url.host == host) req.newBuilder().header("Authorization", "Bearer $token").build() else req)
+        }.build()
+    }
+
+    /**
+     * Downloads [path] (relative to API_BASE) into [dest] with the sign-in, renewing it once when it has expired.
+     * The file is written to a temporary name first, so a broken download never replaces a good copy.
+     */
+    suspend fun download(path: String, dest: java.io.File) {
+        val first = tokens.tokens() ?: throw ApiException("unauthorized", "Sign in to continue.", 401)
+        val status = fetchTo(path, dest, first.accessToken)
+        if (status == 401) {
+            val fresh = refreshLock.withLock {
+                val current = tokens.tokens()
+                if (current != null && current.accessToken != first.accessToken) current else renew(current)
+            } ?: run {
+                signedOut()
+                throw ApiException("token_expired", "Your sign-in has expired. Sign in again.", 401)
+            }
+            val again = fetchTo(path, dest, fresh.accessToken)
+            if (again != 200) throw ApiException("server", "The file could not be downloaded (HTTP $again).", again)
+        } else if (status != 200) {
+            throw ApiException(if (status == 404) "not_found" else "server", if (status == 404) "This file is not available." else "The file could not be downloaded (HTTP $status).", status)
+        }
+    }
+
+    private suspend fun fetchTo(path: String, dest: java.io.File, access: String): Int = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(base + path).header("Authorization", "Bearer $access").build()
+        try {
+            http.newCall(request).execute().use { r ->
+                if (r.code == 200) {
+                    dest.parentFile?.mkdirs()
+                    val tmp = java.io.File(dest.path + ".part")
+                    r.body.byteStream().use { input -> tmp.outputStream().use { input.copyTo(it) } }
+                    if (!tmp.renameTo(dest)) {
+                        dest.delete()
+                        tmp.renameTo(dest)
+                    }
+                }
+                r.code
+            }
+        } catch (e: IOException) {
+            throw ApiException("network", "No connection to DH Workspace. Check your internet and try again.")
+        }
+    }
     private val refreshLock = Mutex()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 

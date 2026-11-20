@@ -24,6 +24,7 @@ sealed interface LearnPage {
     data class CoursePage(val courseId: Int) : LearnPage
     data class LessonPage(val courseId: Int, val lessonId: Int) : LearnPage
     data class QuizPage(val courseId: Int) : LearnPage
+    data class CertificatePage(val code: String) : LearnPage
 }
 
 class LearnViewModel(app: Application) : AndroidViewModel(app) {
@@ -187,6 +188,24 @@ class LearnViewModel(app: Application) : AndroidViewModel(app) {
                 onDone(r)
             } catch (e: ApiException) {
                 onFail(ranges, played)
+            }
+        }
+    }
+
+    var certFile by mutableStateOf<java.io.File?>(null)
+        private set
+    var certError by mutableStateOf<String?>(null)
+        private set
+
+    fun openCertificate(code: String) {
+        certFile = null
+        certError = null
+        stack.add(LearnPage.CertificatePage(code))
+        viewModelScope.launch {
+            try {
+                certFile = (getApplication<Application>() as WpApp).library.certificate(code, getApplication<Application>().cacheDir)
+            } catch (e: ApiException) {
+                certError = e.message
             }
         }
     }
