@@ -45,7 +45,7 @@ android {
         buildConfigField("String", "FCM_API_KEY", "\"${fcm("apiKey")}\"")
     }
 
-    // dev = this computer's XAMPP (local MySQL); prod = workspace.disciplehub.org (live MySQL).
+    // dev = this computer's XAMPP (local PostgreSQL); prod = workspace.disciplehub.org (live PostgreSQL since 2026-11-22).
     flavorDimensions += "env"
     productFlavors {
         create("dev") {

@@ -6,11 +6,12 @@ Package `com.workspace.disciplehub`. Kotlin + Jetpack Compose, min Android 7 (AP
 ## How it fits together
 
 ```
-Android app  --HTTPS + token-->  wp/api/v1/*.php  -->  the same MySQL as the website
+Android app  --HTTPS + token-->  wp/api/v1/*.php  -->  the same PostgreSQL database as the website
 ```
 
-The app never connects to MySQL and never holds a database password. The API lives in the web project
-(`C:\xampp\htdocs\wp\api\v1`, repo spearpower/DHWorkspace) and runs every call as the signed-in person with their
+The app never connects to the database and never holds a database password (the website moved from MySQL to
+PostgreSQL on 2026-11-22; nothing in the app changed). The API lives in the web project
+(`C:\xampp\htdocs\wp\api\v1`, repo spearpower/DHWorkpacePG) and runs every call as the signed-in person with their
 role's rights from the Roles & access matrix. See [docs/API.md](docs/API.md).
 
 ## Build variants
